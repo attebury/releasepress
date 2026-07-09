@@ -1,0 +1,30 @@
+{
+  "schema": "skillpress.command-contract",
+  "version": 1,
+  "tool": "releasepress",
+  "commands": [
+    "boundary",
+    "version",
+    "help",
+    "plan",
+    "export",
+    "scan",
+    "package",
+    "preflight",
+    "stage",
+    "public-review",
+    "attest-review",
+    "checklist",
+    "verify",
+    "release plan",
+    "release status",
+    "release prepare",
+    "release publish-review",
+    "release attest",
+    "release deliver",
+    "promote local",
+    "promote provider",
+    "promote provider <id>",
+    "promote public"
+  ]
+}

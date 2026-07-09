@@ -1,0 +1,28 @@
+{
+  "name": "releasepress",
+  "version": "0.1.0",
+  "description": "Reviewable public release tree exporter and hygiene scanner.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "releasepress": "./bin/releasepress.js"
+  },
+  "files": [
+    "agent-skills/",
+    "bin/",
+    "src/",
+    "docs/",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "check": "npm test",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
