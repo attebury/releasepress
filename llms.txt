@@ -1,0 +1,123 @@
+# Releasepress
+
+Releasepress builds a reviewable public tree from an explicit allowlist, scans the result for local/private material, checks package surfaces, stages clean exports to local/private repositories, and gates opt-in public provider launches behind a human-reviewed target.
+
+It composes existing build, forge, workflow, and package tools. It does not replace Remogram, Waylane, npm publishing, product build logic, or public release authority.
+
+## Core Commands
+
+```bash
+# Repo-independent contract checks
+releasepress --version
+releasepress version --json
+releasepress boundary --json
+
+# Planning and analysis
+releasepress plan --json --config releasepress.config.json
+
+# Build-step sequence
+releasepress export --json --config releasepress.config.json --out <export_root>
+releasepress scan --json --config releasepress.config.json --path <export_root>
+releasepress package --json --config releasepress.config.json
+releasepress preflight --json --config releasepress.config.json --path <export_root>
+releasepress stage --json --config releasepress.config.json --path <export_root>
+
+# Review, verification, and local promotion
+releasepress public-review --json --config releasepress.config.json --path <export_root>
+releasepress attest-review --json --config releasepress.config.json --path <export_root> --approve-public-review
+releasepress checklist --json --config releasepress.config.json --path <export_root>
+releasepress verify --json --config releasepress.config.json --path <export_root>
+releasepress local prepare --json --config releasepress.config.json --source <source_root> --out <local_evidence_root>
+releasepress promote local --json --config releasepress.config.json --source <source_root> --path <local_evidence_root> --approve-local
+
+# Delivery commands
+releasepress promote provider <id> --json --config releasepress.config.json --path <export_root> --approve-public <id>
+releasepress promote public --json --config releasepress.config.json --path <export_root> --approve-public public
+```
+
+## Guided Release Ceremony Commands
+
+Releasepress provides guided ceremony commands that keep the same underlying gates but track operator state explicitly:
+
+```bash
+# Get guided ceremony overview and details
+releasepress help
+
+# Planning and candidate preparation
+releasepress release plan --json --config releasepress.config.json
+releasepress release prepare --json --config releasepress.config.json --out <export_root>
+
+# Status checklist and verification
+releasepress release status --json --config releasepress.config.json --path <export_root>
+
+# Public review and human attestation
+releasepress release publish-review --json --config releasepress.config.json --path <export_root> --target public-review
+releasepress release attest --json --config releasepress.config.json --path <export_root> --target public-review --approve-public-review
+
+# Launch delivery providers
+releasepress release deliver --json --config releasepress.config.json --path <export_root> --target <provider_id> --approve-public <provider_id>
+```
+
+## Configuration Schema (`releasepress.config.json`)
+
+The config uses an allowlist-first approach to restrict what gets copied from source.
+
+### Top-level Keys
+- `public_repo` (string): The public repository URL (e.g. `git@github.com:attebury/releasepress.git`).
+- `stage_repo` (string): Private staging repository URL (e.g. `http://gitea.local/user/releasepress-stage.git`).
+- `stage` (object): Staging strategy:
+  - `strategy` (string): `"replace-main"` or `"unique-ref"`.
+  - `ref` (string): Target branch (e.g. `"main"`).
+- `review_targets` (array): Configures targets for human reviews.
+- `diagnostics` (object): Configures dynamic diagnostic telemetry.
+- `defaults` (object): Configures disallowed profiles and custom block patterns.
+- `include` (array of globs): Allowlisted files to export from the source repository.
+- `exclude` (array of globs): Explicitly excluded files (takes precedence over includes).
+- `forbidden_strings` (array of strings): Denylist of strings (paths, credentials, tokens) checked during scan.
+- `artifacts` (array): Packages compiled from source requiring structural verification.
+- `delivery.providers` (array): Configures opt-in launchers for public distribution.
+
+### Built-in Disallowed Profiles
+- `private-tooling`: Disallows `.runlane/`, `.remogram.json`, `.cursor/`, `.codex/`, `.agents/`, `.claude/`, `.releasepress-report/`, `topo/`, and `topogram.*`.
+- `tool-manifests`: Disallows generated `*.manifest.json` and legacy workflow activation or forge facts.
+- `agent-private-skills`: Disallows dogfood, atteway, lane, observer, and SDLC skill roots under `agent-skills/src/`.
+- `node-artifacts`: Disallows `node_modules/` and `coverage/`.
+
+## Telemetry Diagnostics
+
+Releasepress uses a provider-agnostic telemetry emitter for recording diagnostic events during failed release steps:
+
+```json
+  "diagnostics": {
+    "telemetry": {
+      "enabled": false,
+      "cwd": "source",
+      "command_argv": [
+        "waymark",
+        "event",
+        "emit",
+        "--json"
+      ]
+    }
+  }
+```
+
+If enabled, diagnostic payloads are routed to the configured telemetry utility. It maps field diagnostics under generic schemas and redacts sensitive parameters. Telemetry is purely advisory and never acts as a gate.
+
+## Release Report structure
+
+All verification steps build and inspect the local report bundle under `.releasepress-report/`:
+- `source-commit.txt`: Commit SHA of the source workspace.
+- `source-state.json`: Summary of repository status and active branch.
+- `public-files.json`: Allowlisted files included in the export.
+- `excluded-files.json`: Allowlisted files excluded by user configuration.
+- `disallowed-patterns.json`: Expanded patterns from default and custom disallowed configs.
+- `scan-results.json`: Results from forbidden-string and path-escaping checks.
+- `package-files.json`: Output from package pack inspections.
+- `preflight-results.json`: Output logs and exit status of preflight steps.
+- `stage-results.json`: Staging commits, target repository, and branch info.
+- `public-review-results.json`: Visual review repository and HEAD commit.
+- `public-review-attestation.json`: Human/operator review approval metadata.
+- `checklist.json`: Structured list of all pending and passed ceremony gates.
+- `release-status.json`: Unified status mapping all ceremony states.
+- `verify-results.json`: Final signature verifying the report is consistent.
